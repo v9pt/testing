@@ -4,7 +4,6 @@
     <title>AR Data Visualization</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        /* Existing CSS rules */
         body {
             margin: 0;
             font-family: Arial, sans-serif;
@@ -28,25 +27,16 @@
             color: #333;
             z-index: 1;
         }
-        .slider-container {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            padding: 10px;
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            font-size: 16px;
+        .info-panel h1 {
+            margin: 0;
+            font-size: 24px;
             color: #333;
-            z-index: 1;
         }
-        .button-container {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            z-index: 1;
+        .info-panel p {
+            margin: 5px 0;
+            line-height: 1.5;
         }
-        .button-container button {
+        .info-panel button {
             background-color: #007bff;
             color: #fff;
             border: none;
@@ -54,9 +44,9 @@
             padding: 10px 15px;
             cursor: pointer;
             font-size: 16px;
-            margin: 5px;
+            margin-top: 10px;
         }
-        .button-container button:hover {
+        .info-panel button:hover {
             background-color: #0056b3;
         }
         .data-display {
@@ -73,9 +63,48 @@
             max-width: 80%;
             overflow: auto;
         }
+        .data-display h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #333;
+        }
+        .data-display table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .data-display th, .data-display td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .data-display th {
+            background-color: #f4f4f4;
+        }
+        .data-display button {
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            display: block;
+            width: 100%;
+        }
+        .data-display button:hover {
+            background-color: #218838;
+        }
     </style>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-gui/dist/aframe-gui.min.js"></script>
+    <script>
+        window.onload = function() {
+            alert("Most Optimal When used on a Mobile Device");
+        };
+    </script>
 </head>
 <body>
     <div class="info-panel">
@@ -83,19 +112,6 @@
         <p>This visualization displays data in an augmented reality environment.</p>
         <button onclick="fetchData(spreadsheetId)">Refresh Data</button>
     </div>
-    
-    <div class="slider-container">
-        <label for="zoom-slider">Zoom Level</label>
-        <input type="range" id="zoom-slider" min="1" max="10" step="0.1" value="5">
-        <label for="rotation-slider">Rotation</label>
-        <input type="range" id="rotation-slider" min="0" max="360" step="1" value="0">
-    </div>
-
-    <div class="button-container">
-        <button onclick="showBarChart()">3D Bar Chart</button>
-        <button onclick="showPieChart()">3D Pie Chart</button>
-    </div>
-
     <div class="data-display">
         <h2>Spreadsheet Data</h2>
         <table id="data-table">
@@ -105,7 +121,8 @@
                     <th>Value</th>
                 </tr>
             </thead>
-            <tbody></tbody>
+            <tbody>
+            </tbody>
         </table>
         <button onclick="window.open('https://ethercalc.net/qpmllytxss4g', '_blank')">Edit Spreadsheet</button>
     </div>
@@ -114,134 +131,118 @@
         <a-camera id="camera" position="0 1.6 5" look-controls="pointerLockEnabled: true"></a-camera>
         <a-light type="ambient" color="#ffffff"></a-light>
         <a-light type="directional" position="2 4 3" target="#chart"></a-light>
+        
+        <!-- In-VR Zoom Slider -->
+        <a-entity gui-interactable position="0 1.5 -2">
+            <a-gui-slider width="3" height="0.5" value="0.5" onChange="updateZoom(this)" font-color="#000" 
+                          active-color="#4caf50" handle-color="#000000" percent="0.5" max="10" min="1">
+            </a-gui-slider>
+            <a-text value="Zoom Level" position="-1.5 0.2 0" color="#000"></a-text>
+        </a-entity>
+        
+        <!-- In-VR Rotation Slider -->
+        <a-entity gui-interactable position="0 1 -2">
+            <a-gui-slider width="3" height="0.5" value="0" onChange="updateRotation(this)" font-color="#000" 
+                          active-color="#4caf50" handle-color="#000000" percent="0.5" max="360" min="0">
+            </a-gui-slider>
+            <a-text value="Rotation" position="-1.5 0.2 0" color="#000"></a-text>
+        </a-entity>
+
         <a-entity id="chart" position="0 0 -5"></a-entity>
     </a-scene>
 
     <script>
-        const maxHeight = 5;
         const barWidth = 0.5;
         const barDepth = 0.5;
-        
-        // Function to create bar chart
-        function createBarChart(values, names) {
+        const maxHeight = 5;
+
+        function updateZoom(slider) {
+            const zoomLevel = slider.getAttribute('value');
+            const camera = document.querySelector('a-camera');
+            camera.setAttribute('position', `0 1.6 ${5 - zoomLevel}`);
+        }
+
+        function updateRotation(slider) {
+            const rotation = slider.getAttribute('value');
+            const chart = document.querySelector('#chart');
+            chart.setAttribute('rotation', `0 ${rotation} 0`);
+        }
+
+        function createChart(values, names, type = 'bar') {
             const chartEntity = document.querySelector('#chart');
             while (chartEntity.firstChild) {
                 chartEntity.removeChild(chartEntity.firstChild);
             }
 
-            values.forEach((value, index) => {
-                const barHeight = (value / 100) * maxHeight;
+            if (type === 'bar') {
+                values.forEach((value, index) => {
+                    const barHeight = (value / 100) * maxHeight;
 
-                const geometry = new THREE.BoxGeometry(barWidth, barHeight, barDepth);
-                const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-                const bar = new THREE.Mesh(geometry, material);
-                bar.position.set(index * (barWidth + 0.2) - (values.length / 2 * (barWidth + 0.2)), barHeight / 2, 0);
+                    const geometry = new THREE.BoxGeometry(barWidth, barHeight, barDepth);
+                    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+                    const bar = new THREE.Mesh(geometry, material);
+                    bar.position.set(index * (barWidth + 0.2) - (values.length / 2 * (barWidth + 0.2)), barHeight / 2, 0);
 
-                const wrapperEntity = document.createElement('a-entity');
-                wrapperEntity.setObject3D('mesh', bar);
-                chartEntity.appendChild(wrapperEntity);
-            });
-        }
+                    const meshEntity = new AFRAME.THREE.Object3D();
+                    meshEntity.add(bar);
 
-        // Function to create pie chart
-        function createPieChart(values, names) {
-            const chartEntity = document.querySelector('#chart');
-            while (chartEntity.firstChild) {
-                chartEntity.removeChild(chartEntity.firstChild);
+                    const wrapperEntity = document.createElement('a-entity');
+                    wrapperEntity.setObject3D('mesh', meshEntity);
+                    chartEntity.appendChild(wrapperEntity);
+
+                    const text = document.createElement('a-text');
+                    text.setAttribute('value', names[index] || `Item ${index}`);
+                    text.setAttribute('position', `${bar.position.x} ${bar.position.y + barHeight / 2 + 0.5} ${bar.position.z}`);
+                    text.setAttribute('align', 'center');
+                    text.setAttribute('color', '#000000');
+                    chartEntity.appendChild(text);
+                });
             }
-
-            const total = values.reduce((acc, val) => acc + val, 0);
-            let startAngle = 0;
-            
-            values.forEach((value, index) => {
-                const sliceAngle = (value / total) * Math.PI * 2;
-                const geometry = new THREE.CylinderGeometry(1, 1, 0.2, 32, 1, false, startAngle, sliceAngle);
-                const material = new THREE.MeshBasicMaterial({ color: new THREE.Color(`hsl(${(index * 360) / values.length}, 100%, 50%)`) });
-                const slice = new THREE.Mesh(geometry, material);
-                slice.rotation.x = Math.PI / 2;
-                slice.position.set(0, 0.1, 0);
-
-                const wrapperEntity = document.createElement('a-entity');
-                wrapperEntity.setObject3D('mesh', slice);
-                chartEntity.appendChild(wrapperEntity);
-
-                startAngle += sliceAngle;
-            });
         }
 
-       function fetchData(spreadsheetId) {
-
-    const url = `https://ethercalc.net/_/${spreadsheetId}/csv.json`;
-
-    fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (Array.isArray(data) && data.length === 2) {
-                const names = data[0];
-                const values = data[1].map(value => parseFloat(value)).filter(value => !isNaN(value));
-
-                // Display bar chart by default
-                createBarChart(values, names);
-                updateTable(names, values);
-            } else {
-                console.error('Unexpected data format:', data);
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching data:', error);
-            alert('Failed to fetch data from the spreadsheet.');
-        });
-}
-
-        function updateTable(names, values) {
-            const tableBody = document.querySelector('#data-table tbody');
-            tableBody.innerHTML = '';
-            names.forEach((name, index) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td>${name}</td><td>${values[index]}</td>`;
-                tableBody.appendChild(row);
-            });
-        }
-
-        function showBarChart() {
-            fetchData(spreadsheetId);
-        }
-
-        function showPieChart() {
-            fetchData(spreadsheetId);
+        function fetchData(spreadsheetId) {
             fetch(`https://www.ethercalc.net/_/${spreadsheetId}/csv.json`)
                 .then(response => response.json())
                 .then(data => {
                     if (Array.isArray(data) && data.length === 2) {
                         const names = data[0];
                         const values = data[1].map(value => parseFloat(value)).filter(value => !isNaN(value));
-                        createPieChart(values, names);
+
+                        updateChart([names, values], 'bar');
+                        updateTable(names, values);
                     } else {
                         console.error('Unexpected data format:', data);
                     }
                 })
-                .catch(error => console.error('Failed to fetch data:', error));
+                .catch(error => {
+                    console.error('Failed to fetch data:', error);
+                });
+        }
+
+        function updateChart(data, type) {
+            createChart(data[1], data[0], type);
+        }
+
+        function updateTable(names, values) {
+            const tableBody = document.querySelector('#data-table tbody');
+            tableBody.innerHTML = '';
+
+            names.forEach((name, index) => {
+                const row = document.createElement('tr');
+                const categoryCell = document.createElement('td');
+                const valueCell = document.createElement('td');
+
+                categoryCell.textContent = name;
+                valueCell.textContent = values[index] || 'N/A';
+
+                row.appendChild(categoryCell);
+                row.appendChild(valueCell);
+                tableBody.appendChild(row);
+            });
         }
 
         const spreadsheetId = 'qpmllytxss4g';
         fetchData(spreadsheetId);
-
-        document.getElementById('zoom-slider').addEventListener('input', (event) => {
-            const zoomLevel = event.target.value;
-            const camera = document.querySelector('#camera');
-            camera.setAttribute('position', `0 1.6 ${zoomLevel}`);
-        });
-
-        document.getElementById('rotation-slider').addEventListener('input', (event) => {
-            const rotation = event.target.value;
-            const chart = document.querySelector('#chart');
-            chart.setAttribute('rotation', `0 ${rotation} 0`);
-        });
     </script>
 </body>
 </html>
